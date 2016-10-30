@@ -501,7 +501,10 @@ namespace CMU462 {
 
     int num_samples = ns_aa;
 
-    Vector2D p = Vector2D(0.5,0.5);
+    double norm_x = ((x + 0.5) / frameBuffer.w);
+    double norm_y = ((y + 0.5) / frameBuffer.h);
+    Vector2D p = Vector2D(norm_x, norm_y);
+
     return trace_ray(camera->generate_ray(p.x, p.y));
 
   }
