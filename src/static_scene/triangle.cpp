@@ -121,13 +121,17 @@ bool Triangle::intersect(const Ray& r, Intersection *isect) const {
     Vector3D n1 = mesh->normals[v2];
     Vector3D n2 = mesh->normals[v3];
 
-
     // Assign Intersection struct values
     isect->t = t;
     isect->primitive = this;
-    isect->n = bary.x * n0 + bary.y * n1 + bary.z * n2;
+    isect->n = (1 - u - v) * n0 + u * n1 + v * n2;
     isect->bsdf = mesh->get_bsdf();
   }
+
+
+  // cout << "u = " << u << ", v = " << v << ", intersect = " << intersect << "\n";
+  // cout << "t = " << t << ", min = " << r.min_t << ", max = " << r.max_t << "\n";
+
   return intersect;
 }
 

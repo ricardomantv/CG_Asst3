@@ -115,8 +115,14 @@ namespace CMU462 {
     // compute position of the input sensor sample coordinate on the
     // canonical sensor plane one unit away from the pinhole.
 
-    Vector3D sensor_pos = Vector3D(x, y, 1);
-    Vector3D world_space = c2w * (sensor_pos - pos);
+    double new_x = 2 * x - 1;
+    double new_y = 2 * y - 1;
+
+    // cout << "x = " << new_x << ", y = " << new_y << "\n";
+
+    Vector3D sensor_pos = Vector3D(new_x, new_y, -1);
+    Vector3D world_space = c2w * sensor_pos;
+    // cout << "Ray: " << pos << "->" << world_space << "\n";
     return Ray(pos, world_space);
   }
 
