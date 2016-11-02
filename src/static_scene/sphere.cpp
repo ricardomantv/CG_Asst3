@@ -14,7 +14,39 @@ bool Sphere::test(const Ray& r, double& t1, double& t2) const {
   // Return true if there are intersections and writing the
   // smaller of the two intersection times in t1 and the larger in t2.
 
-  return false;
+  double od = dot(r.o, r.d);
+  double o_len = r.o.norm();
+
+  cout << "r.o = " << r.o << ", r.d = " << r.d << "\n";
+  cout << "od = " << od << "\n";
+
+  double d = pow(od, 2) - pow(o_len, 2) + r2;
+  // cout << "d = " << d << "\n";
+  if(d < 0) {
+    // Discriminant < 0, no intersection
+    return false;
+  }
+
+  double root = sqrt(d);
+  double t_minus = -1 * od - root;
+  double t_plus = -1 * od + root;
+
+  // cout << "t_minus = " << t_minus << ", t_plus = " << t_plus << "\n";
+
+  if((t_minus < r.min_t && t_plus < r.min_t) || (r.max_t < t_minus && r.max_t < t_plus)) {
+    // Intersection points outside of valid t range
+    return false;
+  }
+
+  if(t_minus < t_plus) {
+    t1 = t_minus;
+    t2 = t_plus;
+  } else {
+    t1 = t_plus;
+    t2 = t_minus;
+  }
+
+  return true;
 
 }
 
@@ -36,7 +68,18 @@ bool Sphere::intersect(const Ray& r, Intersection *i) const {
   // When an intersection takes place, the Intersection data should be updated
   // correspondingly.
 
-  return false;
+  double t1;
+  double t2;
+
+  bool intersect = test(r, t1, t2);
+  if(intersect) {
+    i->t = t1;
+    i->primitive = this;
+    i->n = normal(r.at_time(t1));
+    i->bsdf = get_bsdf();
+  }
+
+  return intersect;
 
 }
 

@@ -94,7 +94,7 @@ bool Triangle::intersect(const Ray& r, Intersection *isect) const {
     // Don't bother caclulating barycentric if not within t bounds
     return false;
   }
-
+  
   Vector2D A = Vector2D(0, 0);
   Vector2D B = Vector2D(1, 0);
   Vector2D C = Vector2D(0, 1);
@@ -114,6 +114,8 @@ bool Triangle::intersect(const Ray& r, Intersection *isect) const {
   Vector3D bary = Vector3D(areaPBC, areaPCA, areaPAB) / areaABC;
 
   bool intersect = bary.x > 0 && bary.y > 0 && bary.z > 0;
+
+  // bool intersect = 0 <= (u + v) && (u + v) <= 1;
 
   if(intersect) {
     // Get normals of 3 points
