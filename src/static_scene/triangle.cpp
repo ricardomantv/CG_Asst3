@@ -14,55 +14,29 @@ BBox Triangle::get_bbox() const {
 
   // TODO:
   // compute the bounding box of the triangle
+  Vector3D p0 = mesh->positions[v1];
+  Vector3D p1 = mesh->positions[v2];
+  Vector3D p2 = mesh->positions[v3];
 
-  return BBox();
+  double min_x = (p0.x < p1.x) ? ((p0.x < p2.x) ? p0.x : p2.x) : ((p1.x < p2.x) ? p1.x : p2.x);
+  double min_y = (p0.y < p1.y) ? ((p0.y < p2.y) ? p0.y : p2.y) : ((p1.y < p2.y) ? p1.y : p2.y);
+  double min_z = (p0.z < p1.z) ? ((p0.z < p2.z) ? p0.z : p2.z) : ((p1.z < p2.z) ? p1.z : p2.z);
+
+  double max_x = (p0.x > p1.x) ? ((p0.x > p2.x) ? p0.x : p2.x) : ((p1.x > p2.x) ? p1.x : p2.x);
+  double max_y = (p0.y > p1.y) ? ((p0.y > p2.y) ? p0.y : p2.y) : ((p1.y > p2.y) ? p1.y : p2.y);
+  double max_z = (p0.z > p1.z) ? ((p0.z > p2.z) ? p0.z : p2.z) : ((p1.z > p2.z) ? p1.z : p2.z);
+
+  Vector3D min_V = Vector3D(min_x, min_y, min_z);
+  Vector3D max_V = Vector3D(max_x, max_y, max_z);
+
+  return BBox(min_V, max_V);
 }
 
 bool Triangle::intersect(const Ray& r) const {
 
   // TODO: implement ray-triangle intersection
-  Vector3D p0 = mesh->positions[v1];
-  Vector3D p1 = mesh->positions[v2];
-  Vector3D p2 = mesh->positions[v3];
-
-  Vector3D e1 = p1 - p0;
-  Vector3D e2 = p2 - p0;
-  Vector3D s = r.o - p0;
-
-  Vector3D e1d = cross(e1, r.d);
-  Vector3D se2 = -1 * cross(s, e2);
-  double coef = 1 / (dot(e1d, e2));
-  Vector3D cramer = Vector3D(dot(se2, r.d), dot(e1d, s), dot(se2, e1));
-
-  Vector3D uvt = coef * cramer;
-  double u = uvt.x;
-  double v = uvt.y;
-  double t = uvt.z;
-
-  if(t < r.min_t || r.max_t < t) {
-    // Don't bother caclulating barycentric if not within t bounds
-    return false;
-  }
-
-  Vector2D A = Vector2D(0, 0);
-  Vector2D B = Vector2D(0, 1);
-  Vector2D C = Vector2D(1, 0);
-  Vector2D P = Vector2D(u, v);
-
-  Vector2D ba = B - A;
-  Vector2D ca = C - A;
-  Vector2D bp = B - P;
-  Vector2D cp = C - P;
-  Vector2D ap = A - P;
-
-  double areaABC = cross(ba, ca) / 2;
-  double areaPAB = cross(ap, bp) / 2;
-  double areaPCA = cross(cp, ap) / 2;
-  double areaPBC = cross(bp, cp) / 2;
-
-  Vector3D bary = Vector3D(areaPBC, areaPCA, areaPAB) / areaABC;
-
-  return bary.x > 0 && bary.y > 0 && bary.z > 0;
+  Intersection *isect;
+  return intersect(r, isect);
 }
 
 bool Triangle::intersect(const Ray& r, Intersection *isect) const {
@@ -94,47 +68,32 @@ bool Triangle::intersect(const Ray& r, Intersection *isect) const {
     // Don't bother caclulating barycentric if not within t bounds
     return false;
   }
-  
-  Vector2D A = Vector2D(0, 0);
-  Vector2D B = Vector2D(1, 0);
-  Vector2D C = Vector2D(0, 1);
-  Vector2D P = Vector2D(u, v);
-
-  Vector2D ba = B - A;
-  Vector2D ca = C - A;
-  Vector2D bp = B - P;
-  Vector2D cp = C - P;
-  Vector2D ap = A - P;
-
-  double areaABC = cross(ba, ca) / 2;
-  double areaPAB = cross(ap, bp) / 2;
-  double areaPCA = cross(cp, ap) / 2;
-  double areaPBC = cross(bp, cp) / 2;
-
-  Vector3D bary = Vector3D(areaPBC, areaPCA, areaPAB) / areaABC;
-
-  bool intersect = bary.x > 0 && bary.y > 0 && bary.z > 0;
-
-  // bool intersect = 0 <= (u + v) && (u + v) <= 1;
-
-  if(intersect) {
-    // Get normals of 3 points
-    Vector3D n0 = mesh->normals[v1];
-    Vector3D n1 = mesh->normals[v2];
-    Vector3D n2 = mesh->normals[v3];
-
-    // Assign Intersection struct values
-    isect->t = t;
-    isect->primitive = this;
-    isect->n = (1 - u - v) * n0 + u * n1 + v * n2;
-    isect->bsdf = mesh->get_bsdf();
+  if(u < 0 || 1 < u) {
+    return false;
   }
+  if(v < 0 || 1 < v) {
+    return false;
+  }
+  if((u + v) < 0 || 1 < (u + v)) {
+    return false;
+  }
+
+  // Get normals of 3 points
+  Vector3D n0 = mesh->normals[v1];
+  Vector3D n1 = mesh->normals[v2];
+  Vector3D n2 = mesh->normals[v3];
+
+  // Assign Intersection struct values
+  isect->t = t;
+  isect->primitive = this;
+  isect->n = (1 - u - v) * n0 + u * n1 + v * n2;
+  isect->bsdf = mesh->get_bsdf();
 
 
   // cout << "u = " << u << ", v = " << v << ", intersect = " << intersect << "\n";
   // cout << "t = " << t << ", min = " << r.min_t << ", max = " << r.max_t << "\n";
 
-  return intersect;
+  return true;
 }
 
 void Triangle::draw(const Color& c) const {

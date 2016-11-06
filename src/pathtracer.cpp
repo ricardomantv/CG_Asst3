@@ -413,6 +413,7 @@ namespace CMU462 {
       // If you have an environment map, return the Spectrum this ray
       // samples from the environment map. If you don't return black.
 
+
       return Spectrum(0,0,0);
     }
 
@@ -428,7 +429,7 @@ namespace CMU462 {
     // indirect lighting components calculated in the code below. The starter
     // code overwrites L_out by (.5,.5,.5) so that you can test your geometry
     // queries before you implement path tracing.
-    L_out = Spectrum(5.f, 5.f, 5.f);
+    // L_out = Spectrum(5.f, 5.f, 5.f);
 
     Vector3D hit_p = r.o + r.d * isect.t;
     Vector3D hit_n = isect.n;
@@ -448,8 +449,8 @@ namespace CMU462 {
     // Extend the below code to compute the direct lighting for all the lights
     // in the scene, instead of just the dummy light we provided in part 1.
 
-    InfiniteHemisphereLight light(Spectrum(5.f, 5.f, 5.f));
-    //DirectionalLight light(Spectrum(5.f, 5.f, 5.f), Vector3D(1.0, -1.0, 0.0));
+    //InfiniteHemisphereLight light(Spectrum(5.f, 5.f, 5.f));
+    DirectionalLight light(Spectrum(5.f, 5.f, 5.f), Vector3D(1.0, -1.0, 0.0));
 
     Vector3D dir_to_light;
     float dist_to_light;
@@ -462,7 +463,7 @@ namespace CMU462 {
     double scale = 1.0 / num_light_samples;
     for (int i=0; i<num_light_samples; i++) {
 
-      // returns a vector 'dir_to_light' that is a direction from
+        // returns a vector 'dir_to_light' that is a direction from
       // point hit_p to the point on the light source.  It also returns
       // the distance from point x to this point on the light source.
       // (pdf is the probability of randomly selecting the random
@@ -483,6 +484,18 @@ namespace CMU462 {
       // TODO:
       // Construct a shadow ray and compute whether the intersected surface is
       // in shadow and accumulate reflected radiance
+
+      Ray shadow_ray = Ray(hit_p + dir_to_light * 0.05f, dir_to_light);
+      Intersection shadow_isect;
+      if(bvh->intersect(shadow_ray, &shadow_isect)) {
+        Vector3D s_hitp = shadow_ray.o + shadow_ray.d * shadow_isect.t;
+        Vector3D s_wout = w2o * (shadow_ray.o - s_hitp);
+        Spectrum s = shadow_isect.bsdf->f(s_wout, -1 * w_in);
+        L_out = Spectrum(0.0f, 0.0f, 0.0f); // fix how this color is made?
+      } else {
+        L_out += f;
+      }
+
     }
 
     // TODO:
