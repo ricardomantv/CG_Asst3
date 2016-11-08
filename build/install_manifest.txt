@@ -1,0 +1,14 @@
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/lib/libglew.a
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/include/GL/glew.h
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/include/GL/glxew.h
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/include/GL/wglew.h
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/include/GLFW/glfw3.h
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/include/GLFW/glfw3native.h
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/lib/cmake/glfw/glfw3Config.cmake
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/lib/cmake/glfw/glfw3ConfigVersion.cmake
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/lib/cmake/glfw/glfwTargets.cmake
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/lib/cmake/glfw/glfwTargets-noconfig.cmake
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/lib/pkgconfig/glfw3.pc
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/lib/libglfw3.a
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/lib/libCMU462.a
+/Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/scotty3d

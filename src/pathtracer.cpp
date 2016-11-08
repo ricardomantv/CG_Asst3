@@ -448,61 +448,75 @@ namespace CMU462 {
     // TODO:
     // Extend the below code to compute the direct lighting for all the lights
     // in the scene, instead of just the dummy light we provided in part 1.
+    for(SceneLight* light : scene->lights) {
+      //InfiniteHemisphereLight light(Spectrum(5.f, 5.f, 5.f));
+      //DirectionalLight light(Spectrum(5.f, 5.f, 5.f), Vector3D(1.0, -1.0, 0.0));
 
-    //InfiniteHemisphereLight light(Spectrum(5.f, 5.f, 5.f));
-    DirectionalLight light(Spectrum(5.f, 5.f, 5.f), Vector3D(1.0, -1.0, 0.0));
+      Vector3D dir_to_light;
+      float dist_to_light;
+      float pdf;
 
-    Vector3D dir_to_light;
-    float dist_to_light;
-    float pdf;
+      // no need to take multiple samples from a directional source
+      int num_light_samples = light->is_delta_light() ? 1 : ns_area_light;
 
-    // no need to take multiple samples from a directional source
-    int num_light_samples = light.is_delta_light() ? 1 : ns_area_light;
+      // integrate light over the hemisphere about the normal
+      double scale = 1.0 / num_light_samples;
+      for (int i=0; i<num_light_samples; i++) {
 
-    // integrate light over the hemisphere about the normal
-    double scale = 1.0 / num_light_samples;
-    for (int i=0; i<num_light_samples; i++) {
+          // returns a vector 'dir_to_light' that is a direction from
+        // point hit_p to the point on the light source.  It also returns
+        // the distance from point x to this point on the light source.
+        // (pdf is the probability of randomly selecting the random
+        // sample point on the light source -- more on this in part 2)
+        Spectrum light_L = light->sample_L(hit_p, &dir_to_light, &dist_to_light, &pdf);
 
-        // returns a vector 'dir_to_light' that is a direction from
-      // point hit_p to the point on the light source.  It also returns
-      // the distance from point x to this point on the light source.
-      // (pdf is the probability of randomly selecting the random
-      // sample point on the light source -- more on this in part 2)
-      Spectrum light_L = light.sample_L(hit_p, &dir_to_light, &dist_to_light, &pdf);
+        // convert direction into coordinate space of the surface, where
+        // the surface normal is [0 0 1]
+        Vector3D w_in = w2o * dir_to_light;
 
-      // convert direction into coordinate space of the surface, where
-      // the surface normal is [0 0 1]
-      Vector3D w_in = w2o * dir_to_light;
+        // note that computing dot(n,w_in) is simple
+        // in surface coordinates since the normal is [0 0 1]
+        double cos_theta = std::max(0.0, w_in[2]);
 
-      // note that computing dot(n,w_in) is simple
-      // in surface coordinates since the normal is [0 0 1]
-      double cos_theta = std::max(0.0, w_in[2]);
+        // evaluate surface bsdf
+        Spectrum f = isect.bsdf->f(w_out, w_in);
 
-      // evaluate surface bsdf
-      Spectrum f = isect.bsdf->f(w_out, w_in);
+        // TODO:
+        // Construct a shadow ray and compute whether the intersected surface is
+        // in shadow and accumulate reflected radiance
 
-      // TODO:
-      // Construct a shadow ray and compute whether the intersected surface is
-      // in shadow and accumulate reflected radiance
-
-      Ray shadow_ray = Ray(hit_p + dir_to_light * 0.05f, dir_to_light);
-      Intersection shadow_isect;
-      if(bvh->intersect(shadow_ray, &shadow_isect)) {
-        Vector3D s_hitp = shadow_ray.o + shadow_ray.d * shadow_isect.t;
-        Vector3D s_wout = w2o * (shadow_ray.o - s_hitp);
-        Spectrum s = shadow_isect.bsdf->f(s_wout, -1 * w_in);
-        L_out = Spectrum(0.0f, 0.0f, 0.0f); // fix how this color is made?
-      } else {
-        L_out += f;
+        Ray shadow_ray = Ray(hit_p + dir_to_light * 0.05f, dir_to_light);
+        Intersection shadow_isect;
+        if(bvh->intersect(shadow_ray, &shadow_isect)) {
+          /*
+          Vector3D s_hitp = shadow_ray.o + shadow_ray.d * shadow_isect.t;
+          Vector3D s_wout = w2o * (shadow_ray.o - s_hitp);
+          Spectrum s = shadow_isect.bsdf->f(s_wout, -1 * w_in);
+          */
+          L_out = Spectrum(0.0f, 0.0f, 0.0f); // fix how this color is made?
+        } else {
+          L_out += f;
+        }
       }
-
     }
+
 
     // TODO:
     // Compute an indirect lighting estimate using pathtracing with Monte Carlo.
     // Note that Ray objects have a depth field now; you should use this to avoid
     // traveling down one path forever.
+    Vector3D sample_wi;
+    float pdf;
+    Spectrum i_f = isect.bsdf->sample_f(w_out, &sample_wi, &pdf);
+    float term_prob = 1.0f - i_f.illum();
+    float random = (float)(std::rand()) / RAND_MAX;
 
+    if(random < term_prob) {
+      return L_out;
+    }
+
+    float inv_prob = 1 / (pdf * (1 - term_prob));
+    L_out += i_f * trace_ray(Ray(hit_p, sample_wi)) * dot(sample_wi, isect.n) * inv_prob;
     return L_out;
   }
 
@@ -514,14 +528,22 @@ namespace CMU462 {
 
     int num_samples = ns_aa;
 
-    double norm_x = ((double)x / (double)frameBuffer.w);
-    double norm_y = ((double)y / (double)frameBuffer.h);
-    Vector2D p = Vector2D(norm_x, norm_y);
-    // Vector2D p = Vector2D(0.5, 0.5);
+    double step = 1.0 / (double) num_samples;
 
-    // cout << "x = " << norm_x << ", y = " << norm_y << "\n";
+    Spectrum raytrace_color = Spectrum();
+    for(double sample_x = x + step / 2; sample_x < x + 1; sample_x += step) {
+      for(double sample_y = y + step / 2; sample_y < y + 1; sample_y += step) {
+        double norm_x = sample_x / (double) frameBuffer.w;
+        double norm_y = sample_y / (double) frameBuffer.h;
+        Vector2D p = Vector2D(norm_x, norm_y);
 
-    return trace_ray(camera->generate_ray(p.x, p.y));
+        raytrace_color += trace_ray(camera->generate_ray(p.x, p.y));
+      }
+    }
+
+    raytrace_color *= step;
+
+    return raytrace_color;
 
   }
 
