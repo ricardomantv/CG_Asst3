@@ -63,6 +63,12 @@ namespace CMU462 { namespace StaticScene {
       ~BVHAccel();
 
       /**
+       * Helper function for constructor to make BVH tree using SAH
+       * \return root node of split BVH tree
+       */
+      void constructHelper(BVHNode* node, const std::vector<Primitive*>& primitives, size_t max_leaf_size = 4, int d = 1);
+
+      /**
        * Get the world space bounding box of the aggregate.
        * \return world space bounding box of the aggregate
        */

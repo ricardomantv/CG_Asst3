@@ -40,21 +40,18 @@ namespace CMU462 {
   }
 
   Vector3D CosineWeightedHemisphereSampler3D::get_sample(float *pdf) const {
-
     double Xi1 = (double)(std::rand()) / RAND_MAX;
     double Xi2 = (double)(std::rand()) / RAND_MAX;
 
     double r = sqrt(Xi1);
     double theta = 2 * PI * Xi2;
 
-    *pdf = (float) (cos(theta) / PI);
-
     double xs = r * cos(theta);
     double ys = r * sin(theta);
-    double zs = (0.0 < (1.0 - Xi2)) ? sqrt(1 - Xi2) : 0.0;
+    double zs = sqrt(1 - xs * xs - ys * ys);
+    *pdf = 1 / PI;
 
     return Vector3D(xs, ys, zs);
-    //return Vector3D(0, 0, 1);
   }
 
 

@@ -477,6 +477,7 @@ namespace CMU462 {
         // note that computing dot(n,w_in) is simple
         // in surface coordinates since the normal is [0 0 1]
         double cos_theta = std::max(0.0, w_in[2]);
+        // double cos_theta = std::abs(w_in[2]);
 
         // evaluate surface bsdf
         Spectrum f = isect.bsdf->f(w_out, w_in);
@@ -485,17 +486,12 @@ namespace CMU462 {
         // Construct a shadow ray and compute whether the intersected surface is
         // in shadow and accumulate reflected radiance
 
-        Ray shadow_ray = Ray(hit_p + dir_to_light * 0.05f, dir_to_light);
+        Ray shadow_ray = Ray(hit_p + dir_to_light * EPS_D, dir_to_light);
+        r.min_t = 0;
+        r.max_t = dist_to_light;
         Intersection shadow_isect;
-        if(bvh->intersect(shadow_ray, &shadow_isect)) {
-          /*
-          Vector3D s_hitp = shadow_ray.o + shadow_ray.d * shadow_isect.t;
-          Vector3D s_wout = w2o * (shadow_ray.o - s_hitp);
-          Spectrum s = shadow_isect.bsdf->f(s_wout, -1 * w_in);
-          */
-          L_out = Spectrum(0.0f, 0.0f, 0.0f); // fix how this color is made?
-        } else {
-          L_out += f;
+        if(!bvh->intersect(shadow_ray, &shadow_isect)) {
+          L_out += f * light_L * cos_theta * scale * (1.0f / pdf);
         }
       }
     }
@@ -505,18 +501,22 @@ namespace CMU462 {
     // Compute an indirect lighting estimate using pathtracing with Monte Carlo.
     // Note that Ray objects have a depth field now; you should use this to avoid
     // traveling down one path forever.
+
     Vector3D sample_wi;
-    float pdf;
-    Spectrum i_f = isect.bsdf->sample_f(w_out, &sample_wi, &pdf);
+    float s_pdf;
+    Spectrum i_f = isect.bsdf->sample_f(w_out, &sample_wi, &s_pdf);
+    Vector3D world_wi = (o2w * sample_wi).unit();
     float term_prob = 1.0f - i_f.illum();
     float random = (float)(std::rand()) / RAND_MAX;
 
-    if(random < term_prob) {
+    if(random < term_prob || term_prob == 1.0f) {
       return L_out;
     }
 
-    float inv_prob = 1 / (pdf * (1 - term_prob));
-    L_out += i_f * trace_ray(Ray(hit_p, sample_wi)) * dot(sample_wi, isect.n) * inv_prob;
+    float inv_prob = 1 / (s_pdf * (1 - term_prob));
+    L_out += i_f * trace_ray(Ray(hit_p + EPS_D * world_wi, world_wi)) * dot(world_wi, isect.n) * inv_prob;
+
+
     return L_out;
   }
 

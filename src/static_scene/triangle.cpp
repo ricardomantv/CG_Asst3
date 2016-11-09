@@ -78,21 +78,27 @@ bool Triangle::intersect(const Ray& r, Intersection *isect) const {
     return false;
   }
 
-  // Get normals of 3 points
+  r.max_t = t;
+
+  // Get normals of 3 points and find overall normal
   Vector3D n0 = mesh->normals[v1];
   Vector3D n1 = mesh->normals[v2];
   Vector3D n2 = mesh->normals[v3];
+  Vector3D n = (1 - u - v) * n0 + u * n1 + v * n2;
+  if(dot(n, r.d) > 0) {
+    n *= -1;
+  }
 
   // Assign Intersection struct values
-  isect->t = t;
-  isect->primitive = this;
-  isect->n = (1 - u - v) * n0 + u * n1 + v * n2;
-  isect->bsdf = mesh->get_bsdf();
-
+  if(t < isect->t) {
+    isect->t = t;
+    isect->primitive = this;
+    isect->n = n;
+    isect->bsdf = mesh->get_bsdf();
+  }
 
   // cout << "u = " << u << ", v = " << v << ", intersect = " << intersect << "\n";
   // cout << "t = " << t << ", min = " << r.min_t << ", max = " << r.max_t << "\n";
-
   return true;
 }
 
