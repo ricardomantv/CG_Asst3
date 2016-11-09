@@ -10,8 +10,8 @@ using namespace std;
 
 namespace CMU462 { namespace StaticScene {
 
-  void BVHAccel::constructHelper(BVHNode* node, const std::vector<Primitive *> &_primitives, size_t max_leaf_size, int d) {
-    if(node->range <= max_leaf_size || d == 0) {
+  void BVHAccel::constructHelper(BVHNode* node, std::vector<Primitive *> &_primitives, size_t max_leaf_size) {
+    if(node->range <= max_leaf_size) {
       // Node size is less than max_leaf_size, so it is valid
       return;
     }
@@ -26,8 +26,9 @@ namespace CMU462 { namespace StaticScene {
     size_t min_split = 0; // index to split on
     double split_val = 0.0; // coordinate value of split point
     double min_cost = node->range; // default minimum cost of not splitting = (Sn / Sn) * N = N
-
-    cout << "Node min_cost = " << min_cost << "\n";
+    size_t min_left = 0; // number of primitives in split left side
+    size_t min_right = 0; // number of primitives in split right side
+    // cout << "Node min_cost = " << min_cost << "\n";
     // Iterate through axes, x = 0, y = 1, z = 2
     for(int i = 0; i < 3; i++) {
       min = min_bb[i];
@@ -107,7 +108,7 @@ namespace CMU462 { namespace StaticScene {
         // cout << "Sn = " << Sn << "\n";
         double sah = (Sa / Sn) * Na + (Sb / Sn) * Nb;
 
-        cout << "checking (" << i << ", " << split << ")" << ", cost = " << sah << "\n";
+        // cout << "checking (" << i << ", " << split << ")" << ", cost = " << sah << "\n";
         if(sah < min_cost) {
           split_A = l_box;
           split_B = r_box;
@@ -115,22 +116,27 @@ namespace CMU462 { namespace StaticScene {
           split_val = min + split * eighth;
           min_cost = sah;
           min_split = split;
-          cout << "----new split: (" << xyz_split << ", " << min_split << ")\n";
-          cout << "----split_val = " << split_val << "\n";
-          cout << "----min cost = " << min_cost << "\n";
+          min_left = Na;
+          min_right = Nb;
+          // cout << "left = " << Na << ", right = " << Nb << "\n";
+          // cout << "----new split: (" << xyz_split << ", " << min_split << ")\n";
+          // cout << "----split_val = " << split_val << "\n";
+          // cout << "----min cost = " << min_cost << "\n";
         }
       }
     }
-    cout << "--------------\n";
-    cout << "split: (" << xyz_split << ", " << min_split << ")\n";
-    cout << "split_val = " << split_val << "\n";
+    // cout << "--------------\n";
+    // cout << "split: (" << xyz_split << ", " << min_split << ")\n";
+    // cout << "split_val = " << split_val << "\n";
 
 
     // Ask about partitioning primitive vector in OH
     // Reorder primitives vector by splitting along split value and recombining
+
+    /*
     std::vector<Primitive *> left_p;
     std::vector<Primitive *> right_p;
-    for(int v = 0; v < _primitives.size(); v++) {
+    for(int v = node->start; v < node->start + node->range; v++) {
       Primitive* p = _primitives[v];
       if(p->get_bbox().centroid()[xyz_split] < split_val) {
         left_p.push_back(p);
@@ -143,26 +149,66 @@ namespace CMU462 { namespace StaticScene {
     new_prim.insert(new_prim.end(), left_p.begin(), left_p.end());
     new_prim.insert(new_prim.end(), right_p.begin(), right_p.end());
 
+    size_t l_start = node->start;
+    size_t l_range = left_p.size();
+    size_t r_start = l_start + l_range;
+    size_t r_range = node->range - l_range;
+
+    for(int v = node->start; v < node->start + node->range; v++) {
+      if(v < l_range) {
+        _primitives[v] = left_p[v];
+      } else {
+        _primitives[v] = right_p[v - l_range];
+      }
+    }
+    */
+
     // _primitives = new_prim;
+    /*
+    if(xyz_split == 0) {
+      //std::sort(_primitives.begin() + node->start, _primitives.begin() + node->start + node->range, BVHAccel::sortByX);
+    } else if(xyz_split == 1) {
+      std::sort(node->start, node->start + node->range, sortByY);
+    } else {
+      std::sort(node->start, node->start + node->range, sortByZ);
+    }
+    */
+
+    std::sort(_primitives.begin() + node->start, _primitives.begin() + node->start + node->range,
+              [xyz_split](Primitive* a, Primitive* b) {
+                return a->get_bbox().centroid()[xyz_split] < b->get_bbox().centroid()[xyz_split];
+              });
+    this->primitives = _primitives;
+
+    size_t l_range = min_left;
+    /*
+    while(_primitives[node->start + l_range]->get_bbox().centroid()[xyz_split] < split_val) {
+      cout << "in l: " << _primitives[node->start + l_range]->get_bbox().centroid()[xyz_split] << "\n";
+      l_range++;
+    }
+    */
+
+
 
     // Create new nodes and recurse
 
-    size_t l_start = 0;
-    size_t l_range = left_p.size();
+    size_t l_start = node->start;
     size_t r_start = l_start + l_range;
-    size_t r_range = right_p.size();
+    size_t r_range = min_right;
 
+    // cout << "start = " << node->start << ", range = " << node->range << "\n";
+    // cout << "l_start = " << l_start << ", l_range = " << l_range << ", r_start = " << r_start << ", r_range = " << r_range << "\n\n";
 
     BVHNode* left = new BVHNode(split_A, l_start, l_range);
     BVHNode* right = new BVHNode(split_B, r_start, r_range);
     node->l = left;
     node->r = right;
 
-    constructHelper(left, _primitives, max_leaf_size, d - 1);
-    constructHelper(right, _primitives, max_leaf_size, d - 1);
+    constructHelper(left, _primitives, max_leaf_size);
+    constructHelper(right, _primitives, max_leaf_size);
   }
 
-  BVHAccel::BVHAccel(const std::vector<Primitive *> &_primitives,
+  BVHAccel::BVHAccel(std::vector<Primitive *> &_primitives,
       size_t max_leaf_size) {
 
     this->primitives = _primitives;
@@ -185,7 +231,7 @@ namespace CMU462 { namespace StaticScene {
 
     // cout << "\nmax leaf size = " << max_leaf_size << "\n";
     cout << "\n";
-    // constructHelper(root, _primitives, max_leaf_size, 1);
+    constructHelper(root, _primitives, max_leaf_size);
 
   }
 

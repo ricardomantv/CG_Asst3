@@ -43,15 +43,16 @@ namespace CMU462 {
   // Mirror BSDF //
 
   Spectrum MirrorBSDF::f(const Vector3D& wo, const Vector3D& wi) {
-    return Spectrum();
+    return (1.0f / cos_theta(wo)) * reflectance;
   }
 
   Spectrum MirrorBSDF::sample_f(const Vector3D& wo, Vector3D* wi, float* pdf) {
 
     // TODO:
     // Implement MirrorBSDF
-
-    return Spectrum();
+    *pdf = 1.0f;
+    reflect(wo, wi);
+    return (1.0f / cos_theta(wo)) * reflectance;
   }
 
   // Glossy BSDF //
@@ -99,7 +100,7 @@ namespace CMU462 {
 
     // TODO:
     // Implement reflection of wo about normal (0,0,1) and store result in wi.
-
+    *wi = Vector3D(-wo.x, -wo.y, wo.z);
   }
 
   bool BSDF::refract(const Vector3D& wo, Vector3D* wi, float ior) {

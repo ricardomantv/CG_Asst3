@@ -53,7 +53,7 @@ namespace CMU462 { namespace StaticScene {
        * \param primitives primitives to build from
        * \param max_leaf_size maximum number of primitives to be stored in leaves
        */
-      BVHAccel(const std::vector<Primitive*>& primitives, size_t max_leaf_size = 4);
+      BVHAccel(std::vector<Primitive*>& primitives, size_t max_leaf_size = 4);
 
       /**
        * Destructor.
@@ -63,10 +63,28 @@ namespace CMU462 { namespace StaticScene {
       ~BVHAccel();
 
       /**
+       * Comparator functions for sorting primitives list
+       * \return smaller of two numbers
+       */
+       /*
+       static bool sortByX (int p1, int p2) {
+         return primitives[p1]->get_bbox().centroid().x < primitives[p2]->get_bbox().centroid().x;
+       }
+
+       static bool sortByY (Primitive* p1, Primitive* p2) {
+         return p1->get_bbox().centroid().y < p2->get_bbox().centroid().y;
+       }
+
+       static bool sortByZ (Primitive* p1, Primitive* p2) {
+         return p1->get_bbox().centroid().z < p2->get_bbox().centroid().z;
+       }
+       */
+
+      /**
        * Helper function for constructor to make BVH tree using SAH
        * \return root node of split BVH tree
        */
-      void constructHelper(BVHNode* node, const std::vector<Primitive*>& primitives, size_t max_leaf_size = 4, int d = 1);
+      void constructHelper(BVHNode* node, std::vector<Primitive*>& primitives, size_t max_leaf_size = 4);
 
       /**
        * Get the world space bounding box of the aggregate.

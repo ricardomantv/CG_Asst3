@@ -486,9 +486,7 @@ namespace CMU462 {
         // Construct a shadow ray and compute whether the intersected surface is
         // in shadow and accumulate reflected radiance
 
-        Ray shadow_ray = Ray(hit_p + dir_to_light * EPS_D, dir_to_light);
-        r.min_t = 0;
-        r.max_t = dist_to_light;
+        Ray shadow_ray = Ray(hit_p + dir_to_light * EPS_D, dir_to_light, dist_to_light);
         Intersection shadow_isect;
         if(!bvh->intersect(shadow_ray, &shadow_isect)) {
           L_out += f * light_L * cos_theta * scale * (1.0f / pdf);
@@ -509,12 +507,13 @@ namespace CMU462 {
     float term_prob = 1.0f - i_f.illum();
     float random = (float)(std::rand()) / RAND_MAX;
 
-    if(random < term_prob || term_prob == 1.0f) {
+    if(random < term_prob || term_prob < 0.0f || term_prob >= 1.0f) {
       return L_out;
     }
 
-    float inv_prob = 1 / (s_pdf * (1 - term_prob));
-    L_out += i_f * trace_ray(Ray(hit_p + EPS_D * world_wi, world_wi)) * dot(world_wi, isect.n) * inv_prob;
+    double s_cosTheta = dot(world_wi, isect.n);
+    float inv_prob = 1.0f / (s_pdf * (1 - term_prob));
+    L_out += i_f * trace_ray(Ray(hit_p + EPS_D * world_wi, world_wi)) * s_cosTheta * inv_prob;
 
 
     return L_out;
