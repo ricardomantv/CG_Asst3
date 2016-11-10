@@ -35,8 +35,8 @@ BBox Triangle::get_bbox() const {
 bool Triangle::intersect(const Ray& r) const {
 
   // TODO: implement ray-triangle intersection
-  Intersection *isect;
-  return intersect(r, isect);
+  Intersection isect;
+  return intersect(r, &isect);
 }
 
 bool Triangle::intersect(const Ray& r, Intersection *isect) const {

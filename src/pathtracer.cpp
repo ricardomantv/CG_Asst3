@@ -494,6 +494,9 @@ namespace CMU462 {
       }
     }
 
+    if(r.depth == 0) {
+      return L_out;
+    }
 
     // TODO:
     // Compute an indirect lighting estimate using pathtracing with Monte Carlo.
@@ -511,6 +514,7 @@ namespace CMU462 {
       return L_out;
     }
 
+    Ray redirect = Ray(hit_p + EPS_D * world_wi, world_wi, INF_D, r.depth - 1);
     double s_cosTheta = dot(world_wi, isect.n);
     float inv_prob = 1.0f / (s_pdf * (1 - term_prob));
     L_out += i_f * trace_ray(Ray(hit_p + EPS_D * world_wi, world_wi)) * s_cosTheta * inv_prob;

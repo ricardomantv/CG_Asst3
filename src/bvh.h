@@ -63,22 +63,10 @@ namespace CMU462 { namespace StaticScene {
       ~BVHAccel();
 
       /**
-       * Comparator functions for sorting primitives list
-       * \return smaller of two numbers
+       * Recursive destuctor helper
        */
-       /*
-       static bool sortByX (int p1, int p2) {
-         return primitives[p1]->get_bbox().centroid().x < primitives[p2]->get_bbox().centroid().x;
-       }
 
-       static bool sortByY (Primitive* p1, Primitive* p2) {
-         return p1->get_bbox().centroid().y < p2->get_bbox().centroid().y;
-       }
-
-       static bool sortByZ (Primitive* p1, Primitive* p2) {
-         return p1->get_bbox().centroid().z < p2->get_bbox().centroid().z;
-       }
-       */
+      void del_tree(BVHNode* node);
 
       /**
        * Helper function for constructor to make BVH tree using SAH

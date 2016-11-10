@@ -235,11 +235,22 @@ namespace CMU462 { namespace StaticScene {
 
   }
 
+  void BVHAccel::del_tree(BVHNode* node) {
+    if(node->l != NULL) {
+      del_tree(node->l);
+    }
+    if(node->r != NULL) {
+      del_tree(node->r);
+    }
+
+    delete node;
+  }
+
   BVHAccel::~BVHAccel() {
 
     // TODO:
     // Implement a proper destructor for your BVH accelerator aggregate
-
+    del_tree(root);
   }
 
   BBox BVHAccel::get_bbox() const {
@@ -252,13 +263,49 @@ namespace CMU462 { namespace StaticScene {
     // Implement ray - bvh aggregate intersection test. A ray intersects
     // with a BVH aggregate if and only if it intersects a primitive in
     // the BVH that is not an aggregate.
-    bool hit = false;
-    for (size_t p = 0; p < primitives.size(); ++p) {
-      if(primitives[p]->intersect(ray)) hit = true;
+
+    std::stack<BVHNode *> bvh_stack;
+    bvh_stack.push(root);
+
+    BVHNode* node;
+    BVHNode* left;
+    BVHNode* right;
+
+    double t0;
+    double t1;
+    if(!root->bb.intersect(ray, t0, t1)) {
+      return false;
     }
 
-    return hit;
+    bool hit = false;
+    while(!bvh_stack.empty()) {
+      node = bvh_stack.top();
+      bvh_stack.pop();
+      left = node->l;
+      right = node->r;
 
+      if(node->isLeaf()) {
+        // cout << "start = " << node->start << ", range = " << node->range << "\n";
+        for (size_t p = node->start; p < node->start + node->range; ++p) {
+          if(primitives[p]->intersect(ray)) {
+            return true;
+          }
+        }
+      }
+
+      double l_t0 = ray.min_t;
+      double l_t1 = ray.max_t;
+      double r_t0 = ray.min_t;
+      double r_t1 = ray.max_t;
+      if(left != NULL && left->bb.intersect(ray, l_t0, l_t1)) {
+        bvh_stack.push(left);
+      }
+      if(right != NULL && right->bb.intersect(ray, r_t0, r_t1)) {
+        bvh_stack.push(right);
+      }
+    }
+
+    return false;
   }
 
   bool BVHAccel::intersect(const Ray &ray, Intersection *i) const {
@@ -270,13 +317,48 @@ namespace CMU462 { namespace StaticScene {
     // You should store the non-aggregate primitive in the intersection data
     // and not the BVH aggregate itself.
 
+    std::stack<BVHNode *> bvh_stack;
+    bvh_stack.push(root);
+
+    BVHNode* node;
+    BVHNode* left;
+    BVHNode* right;
+
+    double t0 = ray.min_t;
+    double t1 = ray.max_t;
+    if(!root->bb.intersect(ray, t0, t1)) {
+      return false;
+    }
+
     bool hit = false;
-    for (size_t p = 0; p < primitives.size(); ++p) {
-      if(primitives[p]->intersect(ray, i)) hit = true;
+    while(!bvh_stack.empty()) {
+      node = bvh_stack.top();
+      bvh_stack.pop();
+      left = node->l;
+      right = node->r;
+
+      if(node->isLeaf()) {
+        // cout << "start = " << node->start << ", range = " << node->range << "\n";
+        for (size_t p = node->start; p < node->start + node->range; ++p) {
+          if(primitives[p]->intersect(ray, i)) {
+            hit = true;
+          }
+        }
+      }
+
+      double l_t0 = ray.min_t;
+      double l_t1 = ray.max_t;
+      double r_t0 = ray.min_t;
+      double r_t1 = ray.max_t;
+      if(left != NULL && left->bb.intersect(ray, l_t0, l_t1)) {
+        bvh_stack.push(left);
+      }
+      if(right != NULL && right->bb.intersect(ray, r_t0, r_t1)) {
+        bvh_stack.push(right);
+      }
     }
 
     return hit;
-
   }
 
 }  // namespace StaticScene

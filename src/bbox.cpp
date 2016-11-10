@@ -14,6 +14,29 @@ namespace CMU462 {
     // If the ray intersected the bouding box within the range given by
     // t0, t1, update t0 and t1 with the new intersection times.
 
+    Vector3D bounds[2] = {min, max};
+
+    double x_min = (bounds[r.sign[0]].x - r.o.x) * r.inv_d.x;
+    double x_max = (bounds[1 - r.sign[0]].x - r.o.x) * r.inv_d.x;
+    double y_min = (bounds[r.sign[1]].y - r.o.y) * r.inv_d.y;
+    double y_max = (bounds[1 - r.sign[1]].y - r.o.y) * r.inv_d.y;
+    double z_min = (bounds[r.sign[2]].z - r.o.z) * r.inv_d.z;
+    double z_max = (bounds[1 - r.sign[2]].z - r.o.z) * r.inv_d.z;
+
+    double mins[4] = {t0, x_min, y_min, z_min};
+    double maxs[4] = {t1, x_max, y_max, z_max};
+
+    double t_min = *std::max_element(mins, mins + 4);
+    double t_max = *std::min_element(maxs, maxs + 4);
+
+    // std::cout << "t_min = " << t_min << ", t_max = " << t_max << "\n";
+
+    if(t_min <= t_max) {
+      t0 = t_min;
+      t1 = t_max;
+      return true;
+    }
+
     return false;
 
   }

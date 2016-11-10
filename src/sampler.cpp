@@ -49,7 +49,7 @@ namespace CMU462 {
     double xs = r * cos(theta);
     double ys = r * sin(theta);
     double zs = sqrt(1 - xs * xs - ys * ys);
-    *pdf = 1 / PI;
+    *pdf = zs / PI;
 
     return Vector3D(xs, ys, zs);
   }
