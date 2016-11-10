@@ -534,6 +534,8 @@ namespace CMU462 {
     double step = 1.0 / (double) num_samples;
 
     Spectrum raytrace_color = Spectrum();
+
+    // TODO: Rewrite this to use random samples within pixel rather than determined steps
     for(double sample_x = x + step / 2; sample_x < x + 1; sample_x += step) {
       for(double sample_y = y + step / 2; sample_y < y + 1; sample_y += step) {
         double norm_x = sample_x / (double) frameBuffer.w;

@@ -97,8 +97,6 @@ bool Triangle::intersect(const Ray& r, Intersection *isect) const {
     isect->bsdf = mesh->get_bsdf();
   }
 
-  // cout << "u = " << u << ", v = " << v << ", intersect = " << intersect << "\n";
-  // cout << "t = " << t << ", min = " << r.min_t << ", max = " << r.max_t << "\n";
   return true;
 }
 
