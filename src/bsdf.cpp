@@ -52,7 +52,7 @@ namespace CMU462 {
     // Implement MirrorBSDF
     *pdf = 1.0f;
     reflect(wo, wi);
-    return (1.0f / cos_theta(wo)) * reflectance;
+    return f(wo, *wi);
   }
 
   // Glossy BSDF //
@@ -78,8 +78,27 @@ namespace CMU462 {
 
     // TODO:
     // Implement RefractionBSDF
+    *pdf = 1.0f;
 
-    return Spectrum();
+    double cosTheta = cos_theta(wo);
+    double ni;
+    double nt;
+    if(cosTheta > 0) {
+      ni = 1.0;
+      nt = ior;
+    } else {
+      ni = ior;
+      nt = 1.0;
+      cosTheta *= -1.0;
+    }
+
+    double ntni = nt / ni;
+
+    if(refract(wo, wi, ior)) {
+      return pow(ntni, 2) / cosTheta * transmittance;
+    } else {
+      return Spectrum();
+    }
   }
 
   // Glass BSDF //
@@ -93,14 +112,56 @@ namespace CMU462 {
     // TODO:
     // Compute Fresnel coefficient and either reflect or refract based on it.
 
-    return Spectrum();
+    double cosTheta = cos_theta(wo);
+    double ni;
+    double nt;
+    if(cosTheta > 0) {
+      ni = 1.0;
+      nt = ior;
+    } else {
+      ni = ior;
+      nt = 1.0;
+      cosTheta *= -1;
+    }
+
+    double sin2i = sin_theta2(wo);
+    double nint = ni / nt;
+    double sin2t = pow(nint, 2) * sin2i;
+    double cost = (cosTheta > 0) ? sqrt(1.0 - sin2t) : -1 * sqrt(1.0 - sin2t);
+
+    double niCosi = ni * cosTheta;
+    double niCost = ni * cost;
+    double ntCosi = nt * cosTheta;
+    double ntCost = nt * cost;
+    double r_par = (ntCosi - niCost) / (ntCosi + niCost);
+    double r_perp = (niCosi - ntCost) / (niCosi + ntCost);
+
+    double fresnel = (0.5) * (pow(r_par, 2) + pow(r_perp, 2));
+
+    // Light is reflected
+    if(!refract(wo, wi, ior)) {
+      *pdf = 1.0f;
+      reflect(wo, wi);
+      return (1.0 / cosTheta) * reflectance;
+    }
+
+    double random = (double)(std::rand()) / RAND_MAX;
+    if(random < fresnel) {
+      *pdf = fresnel;
+      reflect(wo, wi);
+      return (fresnel / cosTheta) * reflectance;
+    } else {
+      *pdf = 1.0 - fresnel;
+      return (1.0 - fresnel) * pow(1.0 / nint, 2) * (1.0/ cosTheta) * transmittance;
+    }
   }
 
   void BSDF::reflect(const Vector3D& wo, Vector3D* wi) {
 
     // TODO:
     // Implement reflection of wo about normal (0,0,1) and store result in wi.
-    *wi = Vector3D(-wo.x, -wo.y, wo.z);
+    Vector3D n = Vector3D(0, 0, 1);
+    *wi = -1 * wo + 2 * (dot(wo, n)) * n;
   }
 
   bool BSDF::refract(const Vector3D& wo, Vector3D* wi, float ior) {
@@ -110,6 +171,28 @@ namespace CMU462 {
     // Return false if refraction does not occur due to total internal reflection
     // and true otherwise. When dot(wo,n) is positive, then wo corresponds to a
     // ray entering the surface through vacuum.
+
+    double cosTheta = cos_theta(wo);
+    double ni;
+    double nt;
+    if(cosTheta > 0) {
+      ni = 1.0f;
+      nt = ior;
+    } else {
+      ni = ior;
+      nt = 1.0f;
+    }
+
+    double sin2i = sin_theta2(wo);
+    double nint = ni / nt;
+    double sin2t = pow(nint, 2) * sin2i;
+
+    if(sin2t > 1) {
+      return false;
+    }
+
+    double cost = (cosTheta > 0) ? sqrt(1.0 - sin2t) : -1 * sqrt(1.0 - sin2t);
+    *wi = Vector3D(-nint * wo.x, -nint * wo.y, cost);
 
     return true;
 

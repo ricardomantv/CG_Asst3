@@ -52,6 +52,7 @@ namespace CMU462 {
     *pdf = zs / PI;
 
     return Vector3D(xs, ys, zs);
+
   }
 
 

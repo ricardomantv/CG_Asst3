@@ -531,22 +531,20 @@ namespace CMU462 {
 
     int num_samples = ns_aa;
 
-    double step = 1.0 / (double) num_samples;
-
     Spectrum raytrace_color = Spectrum();
 
-    // TODO: Rewrite this to use random samples within pixel rather than determined steps
-    for(double sample_x = x + step / 2; sample_x < x + 1; sample_x += step) {
-      for(double sample_y = y + step / 2; sample_y < y + 1; sample_y += step) {
-        double norm_x = sample_x / (double) frameBuffer.w;
-        double norm_y = sample_y / (double) frameBuffer.h;
-        Vector2D p = Vector2D(norm_x, norm_y);
+    for(int i = 0; i < num_samples; i++) {
+      Vector2D offset = gridSampler->get_sample();
+      double norm_x = (x + offset.x) / (double) sampleBuffer.w;
+      double norm_y = (y + offset.y) / (double) sampleBuffer.h;
+      Vector2D p = Vector2D(norm_x, norm_y);
 
-        raytrace_color += trace_ray(camera->generate_ray(p.x, p.y));
-      }
+      Ray ray = camera->generate_ray(p.x, p.y);
+      ray.depth = max_ray_depth;
+      raytrace_color += trace_ray(ray);
     }
 
-    raytrace_color *= step;
+    raytrace_color *= (1.0 / num_samples);
 
     return raytrace_color;
 
