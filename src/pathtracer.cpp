@@ -507,10 +507,16 @@ namespace CMU462 {
     float s_pdf;
     Spectrum i_f = isect.bsdf->sample_f(w_out, &sample_wi, &s_pdf);
     Vector3D world_wi = (o2w * sample_wi).unit();
-    float term_prob = 1.0f - i_f.illum();
+    float illum = i_f.illum();
+    if(illum < 0.0f) {
+      illum = 0.0f;
+    } else if(1.0f < illum) {
+      illum = 1.0f;
+    }
+    float term_prob = 1.0f - illum;
     float random = (float)(std::rand()) / RAND_MAX;
 
-    if(random < term_prob || term_prob < 0.0f || term_prob >= 1.0f) {
+    if(random < term_prob) {
       return L_out;
     }
 
@@ -540,7 +546,7 @@ namespace CMU462 {
       Vector2D p = Vector2D(norm_x, norm_y);
 
       Ray ray = camera->generate_ray(p.x, p.y);
-      ray.depth = max_ray_depth;
+      ray.depth = 2;
       raytrace_color += trace_ray(ray);
     }
 

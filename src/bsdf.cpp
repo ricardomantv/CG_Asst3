@@ -43,7 +43,11 @@ namespace CMU462 {
   // Mirror BSDF //
 
   Spectrum MirrorBSDF::f(const Vector3D& wo, const Vector3D& wi) {
-    return (1.0f / cos_theta(wo)) * reflectance;
+    if(wo.x == wi.x * -1 && wo.y == wi.y * -1 && wo.z == wi.z) {
+      return (1.0 / cos_theta(wo)) * reflectance;
+    }
+
+    return Spectrum();
   }
 
   Spectrum MirrorBSDF::sample_f(const Vector3D& wo, Vector3D* wi, float* pdf) {
@@ -52,7 +56,7 @@ namespace CMU462 {
     // Implement MirrorBSDF
     *pdf = 1.0f;
     reflect(wo, wi);
-    return f(wo, *wi);
+    return (1.0 / cos_theta(wo)) * reflectance;
   }
 
   // Glossy BSDF //
@@ -80,22 +84,22 @@ namespace CMU462 {
     // Implement RefractionBSDF
     *pdf = 1.0f;
 
-    double cosTheta = cos_theta(wo);
+    double cosi = cos_theta(wo);
     double ni;
     double nt;
-    if(cosTheta > 0) {
+    if(cosi > 0) {
       ni = 1.0;
       nt = ior;
     } else {
       ni = ior;
       nt = 1.0;
-      cosTheta *= -1.0;
+      cosi *= -1.0;
     }
 
     double ntni = nt / ni;
 
     if(refract(wo, wi, ior)) {
-      return pow(ntni, 2) / cosTheta * transmittance;
+      return pow(ntni, 2) / cosi * transmittance;
     } else {
       return Spectrum();
     }
@@ -112,56 +116,62 @@ namespace CMU462 {
     // TODO:
     // Compute Fresnel coefficient and either reflect or refract based on it.
 
-    double cosTheta = cos_theta(wo);
+    // Total internal reflection
+    if(!refract(wo, wi, ior)) {
+      std::cout << "internal reflection\n";
+      *pdf = 1.0f;
+      reflect(wo, wi);
+      return reflectance;
+    }
+
+    double cosi = cos_theta(wo);
     double ni;
     double nt;
-    if(cosTheta > 0) {
+    if(cosi > 0) {
       ni = 1.0;
       nt = ior;
     } else {
       ni = ior;
       nt = 1.0;
-      cosTheta *= -1;
+      cosi *= -1;
     }
 
     double sin2i = sin_theta2(wo);
     double nint = ni / nt;
     double sin2t = pow(nint, 2) * sin2i;
-    double cost = (cosTheta > 0) ? sqrt(1.0 - sin2t) : -1 * sqrt(1.0 - sin2t);
+    double cost = (cosi > 0) ? -1 * sqrt(1.0 - sin2t) : sqrt(1.0 - sin2t);
+    // double cost = sqrt(1.0 - sin2t);
 
-    double niCosi = ni * cosTheta;
+    double niCosi = ni * cosi;
     double niCost = ni * cost;
-    double ntCosi = nt * cosTheta;
+    double ntCosi = nt * cosi;
     double ntCost = nt * cost;
+    // std::cout << "cosi = " << cosi << ", cost = " << cost << "\n";
     double r_par = (ntCosi - niCost) / (ntCosi + niCost);
     double r_perp = (niCosi - ntCost) / (niCosi + ntCost);
 
     double fresnel = (0.5) * (pow(r_par, 2) + pow(r_perp, 2));
-
-    // Light is reflected
-    if(!refract(wo, wi, ior)) {
-      *pdf = 1.0f;
-      reflect(wo, wi);
-      return (1.0 / cosTheta) * reflectance;
-    }
+    // std::cout << "fresnel = " << fresnel << "\n";
 
     double random = (double)(std::rand()) / RAND_MAX;
     if(random < fresnel) {
       *pdf = fresnel;
       reflect(wo, wi);
-      return (fresnel / cosTheta) * reflectance;
+      return fresnel * (1.0 / cosi) * reflectance;
     } else {
       *pdf = 1.0 - fresnel;
-      return (1.0 - fresnel) * pow(1.0 / nint, 2) * (1.0/ cosTheta) * transmittance;
+      return (1.0 - fresnel) * pow(1.0 / nint, 2) * (1.0/ std::abs(cosi)) * transmittance;
     }
+
   }
 
   void BSDF::reflect(const Vector3D& wo, Vector3D* wi) {
 
     // TODO:
     // Implement reflection of wo about normal (0,0,1) and store result in wi.
-    Vector3D n = Vector3D(0, 0, 1);
-    *wi = -1 * wo + 2 * (dot(wo, n)) * n;
+    // Vector3D n = Vector3D(0, 0, 1);
+    // *wi = -1 * wo + 2 * (dot(wo, n)) * n;
+    *wi = Vector3D(-1 * wo.x, -1 * wo.y, wo.z);
   }
 
   bool BSDF::refract(const Vector3D& wo, Vector3D* wi, float ior) {
@@ -172,10 +182,10 @@ namespace CMU462 {
     // and true otherwise. When dot(wo,n) is positive, then wo corresponds to a
     // ray entering the surface through vacuum.
 
-    double cosTheta = cos_theta(wo);
+    double cosi = cos_theta(wo);
     double ni;
     double nt;
-    if(cosTheta > 0) {
+    if(cosi > 0) {
       ni = 1.0f;
       nt = ior;
     } else {
@@ -184,15 +194,19 @@ namespace CMU462 {
     }
 
     double sin2i = sin_theta2(wo);
+    // std::cout << "sin2i = " << sin2i << "\n";
     double nint = ni / nt;
     double sin2t = pow(nint, 2) * sin2i;
 
-    if(sin2t > 1) {
+    if(1.0 - sin2t < 0.0) {
+      // Internal reflection
       return false;
     }
 
-    double cost = (cosTheta > 0) ? sqrt(1.0 - sin2t) : -1 * sqrt(1.0 - sin2t);
-    *wi = Vector3D(-nint * wo.x, -nint * wo.y, cost);
+    double cost = (cosi > 0) ? -1 * sqrt(1.0 - sin2t) : sqrt(1.0 - sin2t);
+    // double cost = sqrt(1.0 - sin2t);
+    // std::cout << "cosi = " << cosi << ", cost = " << cost << "\n";
+    *wi = Vector3D(-1 * nint * wo.x, -1 * nint * wo.y, cost);
 
     return true;
 
