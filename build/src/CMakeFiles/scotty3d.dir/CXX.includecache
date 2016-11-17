@@ -833,6 +833,8 @@ scene.h
 /Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/src/static_scene/environment_light.cpp
 environment_light.h
 /Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/src/static_scene/environment_light.h
+iostream
+-
 
 /Users/ricardo/Documents/school/junior/fall/computer graphics/3_pathtracer/src/static_scene/environment_light.h
 ../sampler.h

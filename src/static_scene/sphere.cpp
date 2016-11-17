@@ -69,9 +69,14 @@ bool Sphere::intersect(const Ray& r, Intersection *i) const {
   bool intersect = test(r, t1, t2);
   r.max_t = t2;
   if(intersect && t1 < i->t) {
+    Vector3D n = normal(r.at_time(t1));
+    if(dot(n, r.d) > 0) {
+      n *= -1;
+    }
+
     i->t = t1;
     i->primitive = this;
-    i->n = normal(r.at_time(t1));
+    i->n = n;
     i->bsdf = get_bsdf();
   }
 

@@ -414,6 +414,10 @@ namespace CMU462 {
       // samples from the environment map. If you don't return black.
 
 
+      if(this->envLight != NULL) {
+        return this->envLight->sample_dir(r);
+      }
+
       return Spectrum(0,0,0);
     }
 
@@ -505,6 +509,7 @@ namespace CMU462 {
 
     Vector3D sample_wi;
     float s_pdf;
+
     Spectrum i_f = isect.bsdf->sample_f(w_out, &sample_wi, &s_pdf);
     Vector3D world_wi = (o2w * sample_wi).unit();
     float illum = i_f.illum();
@@ -523,7 +528,7 @@ namespace CMU462 {
     Ray redirect = Ray(hit_p + EPS_D * world_wi, world_wi, INF_D, r.depth - 1);
     double s_cosTheta = dot(world_wi, isect.n);
     float inv_prob = 1.0f / (s_pdf * (1 - term_prob));
-    L_out += i_f * trace_ray(Ray(hit_p + EPS_D * world_wi, world_wi)) * s_cosTheta * inv_prob;
+    L_out += i_f * trace_ray(redirect) * s_cosTheta * inv_prob;
 
 
     return L_out;
@@ -546,7 +551,7 @@ namespace CMU462 {
       Vector2D p = Vector2D(norm_x, norm_y);
 
       Ray ray = camera->generate_ray(p.x, p.y);
-      ray.depth = 2;
+      ray.depth = max_ray_depth;
       raytrace_color += trace_ray(ray);
     }
 

@@ -44,6 +44,8 @@ class EnvironmentLight : public SceneLight {
 
  private:
   const HDRImageBuffer* envMap;
+
+  Matrix3x3 w2o, o2w; // object to world and world to object matrices
 }; // class EnvironmentLight
 
 } // namespace StaticScene

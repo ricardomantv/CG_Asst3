@@ -56,7 +56,7 @@ namespace CMU462 {
     // Implement MirrorBSDF
     *pdf = 1.0f;
     reflect(wo, wi);
-    return (1.0 / cos_theta(wo)) * reflectance;
+    return f(wo, *wi);
   }
 
   // Glossy BSDF //
@@ -93,13 +93,12 @@ namespace CMU462 {
     } else {
       ni = ior;
       nt = 1.0;
-      cosi *= -1.0;
     }
 
     double ntni = nt / ni;
 
     if(refract(wo, wi, ior)) {
-      return pow(ntni, 2) / cosi * transmittance;
+      return (pow(ntni, 2) / std::abs(cosi)) * transmittance;
     } else {
       return Spectrum();
     }
@@ -118,13 +117,14 @@ namespace CMU462 {
 
     // Total internal reflection
     if(!refract(wo, wi, ior)) {
-      std::cout << "internal reflection\n";
       *pdf = 1.0f;
       reflect(wo, wi);
       return reflectance;
     }
 
     double cosi = cos_theta(wo);
+    double cost = cos_theta(*wi); // wi already calculated
+
     double ni;
     double nt;
     if(cosi > 0) {
@@ -133,25 +133,18 @@ namespace CMU462 {
     } else {
       ni = ior;
       nt = 1.0;
-      cosi *= -1;
     }
 
-    double sin2i = sin_theta2(wo);
     double nint = ni / nt;
-    double sin2t = pow(nint, 2) * sin2i;
-    double cost = (cosi > 0) ? -1 * sqrt(1.0 - sin2t) : sqrt(1.0 - sin2t);
-    // double cost = sqrt(1.0 - sin2t);
 
     double niCosi = ni * cosi;
     double niCost = ni * cost;
     double ntCosi = nt * cosi;
     double ntCost = nt * cost;
-    // std::cout << "cosi = " << cosi << ", cost = " << cost << "\n";
     double r_par = (ntCosi - niCost) / (ntCosi + niCost);
     double r_perp = (niCosi - ntCost) / (niCosi + ntCost);
 
     double fresnel = (0.5) * (pow(r_par, 2) + pow(r_perp, 2));
-    // std::cout << "fresnel = " << fresnel << "\n";
 
     double random = (double)(std::rand()) / RAND_MAX;
     if(random < fresnel) {
@@ -160,7 +153,7 @@ namespace CMU462 {
       return fresnel * (1.0 / cosi) * reflectance;
     } else {
       *pdf = 1.0 - fresnel;
-      return (1.0 - fresnel) * pow(1.0 / nint, 2) * (1.0/ std::abs(cosi)) * transmittance;
+      return (1.0 - fresnel) * (pow(1.0 / nint, 2) / std::abs(cosi)) * transmittance;
     }
 
   }
@@ -169,8 +162,6 @@ namespace CMU462 {
 
     // TODO:
     // Implement reflection of wo about normal (0,0,1) and store result in wi.
-    // Vector3D n = Vector3D(0, 0, 1);
-    // *wi = -1 * wo + 2 * (dot(wo, n)) * n;
     *wi = Vector3D(-1 * wo.x, -1 * wo.y, wo.z);
   }
 
@@ -194,7 +185,6 @@ namespace CMU462 {
     }
 
     double sin2i = sin_theta2(wo);
-    // std::cout << "sin2i = " << sin2i << "\n";
     double nint = ni / nt;
     double sin2t = pow(nint, 2) * sin2i;
 
@@ -203,9 +193,7 @@ namespace CMU462 {
       return false;
     }
 
-    double cost = (cosi > 0) ? -1 * sqrt(1.0 - sin2t) : sqrt(1.0 - sin2t);
-    // double cost = sqrt(1.0 - sin2t);
-    // std::cout << "cosi = " << cosi << ", cost = " << cost << "\n";
+    double cost = sqrt(1.0 - sin2t);
     *wi = Vector3D(-1 * nint * wo.x, -1 * nint * wo.y, cost);
 
     return true;
